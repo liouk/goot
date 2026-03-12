@@ -18,6 +18,7 @@ var (
 
 	pickerItemStyle         = lipgloss.NewStyle().PaddingLeft(4)
 	pickerSelectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.ANSIColor(3)) // yellow
+	pickerNumberStyle       = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(8))                // gray
 )
 
 type listItem struct {
@@ -45,7 +46,8 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 		prefix = "> "
 	}
 
-	fmt.Fprint(w, style.Render(prefix+li.list.Title))
+	number := pickerNumberStyle.Render(fmt.Sprintf("%d.", index+1))
+	fmt.Fprint(w, style.Render(fmt.Sprintf("%s%s %s", prefix, number, li.list.Title)))
 }
 
 type pickerModel struct {
@@ -74,11 +76,26 @@ func pickerWithLists(p pickerModel, lists []TaskList) pickerModel {
 }
 
 func (m pickerModel) Update(msg tea.Msg) (pickerModel, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-		if item, ok := m.list.SelectedItem().(listItem); ok {
-			m.selected = item.list
-			m.chosen = true
-			return m, nil
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "enter":
+			if item, ok := m.list.SelectedItem().(listItem); ok {
+				m.selected = item.list
+				m.chosen = true
+				return m, nil
+			}
+		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+			if !m.list.SettingFilter() {
+				idx := int(key.String()[0]-'0') - 1
+				items := m.list.Items()
+				if idx < len(items) {
+					if item, ok := items[idx].(listItem); ok {
+						m.selected = item.list
+						m.chosen = true
+						return m, nil
+					}
+				}
+			}
 		}
 	}
 
