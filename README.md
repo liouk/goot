@@ -35,9 +35,11 @@ goot [list-name]
 
 | Key | Action |
 |-----|--------|
+| `1`-`9` | Select list by number (picker screen) |
 | `/` | Filter lists (picker screen) |
 | `tab` / `shift+tab` | Navigate between form fields |
 | `enter` | Select list / submit task |
+| `backspace` | Go back to list selection (creator screen, empty title) |
 | `esc` | Quit with confirmation (creator screen) |
 | `ctrl+c` | Quit immediately |
 
