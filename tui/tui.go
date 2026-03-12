@@ -145,6 +145,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case listsLoadedMsg:
 		m.picker = pickerWithLists(m.picker, msg.lists)
 
+		// Skip picker if only one list exists.
+		if len(msg.lists) == 1 {
+			return m.selectList(msg.lists[0])
+		}
+
 		// If a list name was provided, try to skip the picker.
 		if m.cfg.ListName != "" {
 			for _, l := range msg.lists {
