@@ -13,30 +13,30 @@ import (
 var (
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("69")).
+			Foreground(lipgloss.ANSIColor(4)). // blue
 			Padding(0, 1)
 
 	labelStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
+			Foreground(lipgloss.ANSIColor(3)). // yellow
 			Width(10)
 
 	taskItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("245"))
+			Foreground(lipgloss.ANSIColor(7)) // white
 
 	taskDueStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241"))
+			Foreground(lipgloss.ANSIColor(4)) // blue
 
 	sectionStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("238")).
+			BorderForeground(lipgloss.ANSIColor(4)). // blue
 			Padding(1, 2)
 
 	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("78")).
+			Foreground(lipgloss.ANSIColor(2)). // green
 			Bold(true)
 
 	hintStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241"))
+			Foreground(lipgloss.ANSIColor(8)) // bright black (gray)
 )
 
 type field int
@@ -55,6 +55,7 @@ type creatorModel struct {
 	focus      field
 	submitted  bool
 	dueTouched bool
+	width      int
 }
 
 func newCreator(list TaskList) creatorModel {
@@ -136,10 +137,17 @@ func (m creatorModel) View() string {
 	existing := m.renderExistingTasks()
 	form := m.renderForm()
 
-	left := sectionStyle.Width(40).Render(existing)
-	right := sectionStyle.Width(44).Render(form)
+	w := m.width
+	if w < 40 {
+		w = 40
+	}
+	// Account for border (1 char each side).
+	contentWidth := w - 2
 
-	return "\n" + lipgloss.JoinHorizontal(lipgloss.Top, left, right) + "\n"
+	top := sectionStyle.Width(contentWidth).Render(form)
+	bottom := sectionStyle.Width(contentWidth).Render(existing)
+
+	return "\n" + lipgloss.JoinVertical(lipgloss.Left, top, bottom) + "\n"
 }
 
 func (m creatorModel) renderExistingTasks() string {
@@ -153,7 +161,7 @@ func (m creatorModel) renderExistingTasks() string {
 	}
 
 	for _, t := range m.tasks {
-		line := taskItemStyle.Render("  " + t.Title)
+		line := taskItemStyle.Render("  ✦ " + t.Title)
 		if t.Due != "" {
 			line += taskDueStyle.Render("  " + t.Due)
 		}

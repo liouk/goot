@@ -3,8 +3,10 @@ package tui
 import (
 	"context"
 	"fmt"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type screen int
@@ -47,6 +49,7 @@ type model struct {
 	quitting   bool
 	submitting bool
 	confirming bool // esc was pressed, waiting for y/n
+	width      int
 }
 
 // listsLoadedMsg is sent when task lists have been fetched.
@@ -61,6 +64,9 @@ type tasksLoadedMsg struct {
 
 // taskCreatedMsg is sent when a task has been successfully created.
 type taskCreatedMsg struct{}
+
+// successTimeoutMsg is sent after the success message display duration.
+type successTimeoutMsg struct{}
 
 // errMsg wraps any error from async operations.
 type errMsg struct{ err error }
@@ -99,6 +105,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
+		// Error screen: quit on q/esc.
+		if m.err != nil {
+			if msg.String() == "q" || msg.String() == "esc" {
+				return m, tea.Quit
+			}
+			return m, nil
+		}
+
 		// Quit confirmation prompt.
 		if m.confirming {
 			if msg.String() == "y" {
@@ -113,6 +127,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.confirming = true
 			return m, nil
 		}
+
+		// Go back to picker when backspace is pressed on an empty title field.
+		if msg.String() == "backspace" && m.screen == screenCreator &&
+			m.creator.focus == fieldTitle && m.creator.inputs[fieldTitle].Value() == "" {
+			m.screen = screenPicker
+			m.picker.chosen = false
+			return m, nil
+		}
+
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.picker.list.SetWidth(msg.Width)
+		m.creator.width = msg.Width
+		return m, nil
 
 	case listsLoadedMsg:
 		m.picker = pickerWithLists(m.picker, msg.lists)
@@ -133,12 +161,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case taskCreatedMsg:
 		m.quitting = true
+		return m, tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+			return successTimeoutMsg{}
+		})
+
+	case successTimeoutMsg:
 		return m, tea.Quit
 
 	case errMsg:
 		m.err = msg.err
-		m.quitting = true
-		return m, tea.Quit
+		return m, nil
 	}
 
 	switch m.screen {
@@ -172,6 +204,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *model) selectList(list TaskList) (tea.Model, tea.Cmd) {
 	m.screen = screenCreator
 	m.creator = newCreator(list)
+	m.creator.width = m.width
 	return m, m.loadTasks(list.ID)
 }
 
@@ -207,7 +240,8 @@ func (m model) createTask() tea.Cmd {
 
 func (m model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("\n  Error: %s\n\n", m.err)
+		errPrefix := lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(3)).Bold(true).Render("Error:")
+		return fmt.Sprintf("\n  %s %s\n\n  Press q/esc to quit.\n\n", errPrefix, m.err)
 	}
 	if m.quitting {
 		return "\n  Task created!\n\n"

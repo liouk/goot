@@ -13,11 +13,11 @@ import (
 var (
 	pickerTitleStyle = lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color("69")).
+				Foreground(lipgloss.ANSIColor(4)). // blue
 				Padding(0, 1)
 
 	pickerItemStyle         = lipgloss.NewStyle().PaddingLeft(4)
-	pickerSelectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("69"))
+	pickerSelectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.ANSIColor(3)) // yellow
 )
 
 type listItem struct {
