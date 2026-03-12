@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -51,19 +53,40 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 }
 
 type pickerModel struct {
-	list     list.Model
-	selected TaskList
-	chosen   bool
+	list      list.Model
+	help      help.Model
+	selected  TaskList
+	chosen    bool
+	hidden   TaskList
+	hiding    bool
+	statusMsg string
 }
+
+var statusStyle = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(3)).PaddingLeft(2)
+
+type pickerKeyMap struct{}
+
+func (k pickerKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{
+		key.NewBinding(key.WithKeys("j"), key.WithHelp("j/k", "up/down")),
+		key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
+		key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+		key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "hide list")),
+	}
+}
+
+func (k pickerKeyMap) FullHelp() [][]key.Binding { return nil }
 
 func newPicker() pickerModel {
 	l := list.New(nil, listItemDelegate{}, 40, 14)
 	l.Title = "Select a task list"
 	l.Styles.Title = pickerTitleStyle
 	l.SetShowStatusBar(false)
-	l.SetShowHelp(true)
+	l.SetShowHelp(false)
 	l.SetFilteringEnabled(true)
-	return pickerModel{list: l}
+	l.KeyMap.CursorUp = key.NewBinding(key.WithKeys("k"), key.WithHelp("k", "up"))
+	l.KeyMap.CursorDown = key.NewBinding(key.WithKeys("j"), key.WithHelp("j", "down"))
+	return pickerModel{list: l, help: help.New()}
 }
 
 func pickerWithLists(p pickerModel, lists []TaskList) pickerModel {
@@ -85,6 +108,14 @@ func (m pickerModel) Update(msg tea.Msg) (pickerModel, tea.Cmd) {
 				m.selected = item.list
 				m.chosen = true
 				return m, nil
+			}
+		case "x":
+			if !m.list.SettingFilter() {
+				if item, ok := m.list.SelectedItem().(listItem); ok {
+					m.hidden = item.list
+					m.hiding = true
+					return m, nil
+				}
 			}
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			if !m.list.SettingFilter() {
@@ -110,6 +141,13 @@ func (m pickerModel) View() string {
 	var b strings.Builder
 	b.WriteString("\n")
 	b.WriteString(m.list.View())
+	b.WriteString("\n")
+	if m.statusMsg != "" {
+		b.WriteString(statusStyle.Render(m.statusMsg))
+		b.WriteString("\n")
+	}
+	b.WriteString("  ")
+	b.WriteString(m.help.View(pickerKeyMap{}))
 	b.WriteString("\n")
 	return b.String()
 }

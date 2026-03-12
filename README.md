@@ -31,12 +31,28 @@ goot [list-name]
 - No arguments: starts at the list selection screen with fuzzy filtering
 - With a list name: skips selection and jumps straight to task creation (case-insensitive match; falls back to selection if no match)
 
+## Configuration
+
+Optional. Create `~/.config/goot/config.json` to customize behavior:
+
+```json
+{
+  "hidden_lists_by_id": ["list-id-1", "list-id-2"]
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `hidden_lists_by_id` | List IDs to hide from the picker (use `x` in the picker to hide lists interactively) |
+
 ## Keybindings
 
 | Key | Action |
 |-----|--------|
+| `j` / `k` | Navigate up/down (picker screen) |
 | `1`-`9` | Select list by number (picker screen) |
 | `/` | Filter lists (picker screen) |
+| `x` | Hide list from picker (picker screen) |
 | `tab` / `shift+tab` | Navigate between form fields |
 | `enter` | Select list / submit task |
 | `backspace` | Go back to list selection (creator screen, empty title) |

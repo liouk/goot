@@ -35,9 +35,15 @@ type Task struct {
 }
 
 // Config holds the TUI startup configuration.
+// HideListFunc is called to persist a newly hidden list ID.
+type HideListFunc func(listID string) error
+
+// Config holds the TUI startup configuration.
 type Config struct {
-	API      TaskAPI
-	ListName string // optional: skip picker if this matches a list
+	API             TaskAPI
+	ListName        string       // optional: skip picker if this matches a list
+	HiddenListsByID []string     // list IDs to hide from the TUI
+	HideList        HideListFunc // callback to persist hidden list
 }
 
 type model struct {
@@ -67,6 +73,10 @@ type taskCreatedMsg struct{}
 
 // successTimeoutMsg is sent after the success message display duration.
 type successTimeoutMsg struct{}
+
+// clearStatusMsg clears the picker status message.
+type clearStatusMsg struct{}
+
 
 // errMsg wraps any error from async operations.
 type errMsg struct{ err error }
@@ -143,16 +153,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case listsLoadedMsg:
-		m.picker = pickerWithLists(m.picker, msg.lists)
+		lists := m.filterHidden(msg.lists)
+		m.picker = pickerWithLists(m.picker, lists)
 
 		// Skip picker if only one list exists.
-		if len(msg.lists) == 1 {
-			return m.selectList(msg.lists[0])
+		if len(lists) == 1 {
+			return m.selectList(lists[0])
 		}
 
 		// If a list name was provided, try to skip the picker.
 		if m.cfg.ListName != "" {
-			for _, l := range msg.lists {
+			for _, l := range lists {
 				if matchesListName(l.Title, m.cfg.ListName) {
 					return m.selectList(l)
 				}
@@ -173,6 +184,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case successTimeoutMsg:
 		return m, tea.Quit
 
+	case clearStatusMsg:
+		m.picker.statusMsg = ""
+		return m, nil
+
 	case errMsg:
 		m.err = msg.err
 		return m, nil
@@ -185,6 +200,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.picker.chosen {
 			return m.selectList(m.picker.selected)
+		}
+		if m.picker.hiding {
+			m.picker.hiding = false
+			hidden := m.picker.hidden
+			m.cfg.HiddenListsByID = append(m.cfg.HiddenListsByID, hidden.ID)
+
+			// Rebuild the list without the hidden item.
+			var filtered []TaskList
+			for _, item := range m.picker.list.Items() {
+				if li, ok := item.(listItem); ok && li.list.ID != hidden.ID {
+					filtered = append(filtered, li.list)
+				}
+			}
+			m.picker = pickerWithLists(m.picker, filtered)
+
+			// Persist to config.
+			if m.cfg.HideList != nil {
+				if err := m.cfg.HideList(hidden.ID); err != nil {
+					m.err = err
+					return m, nil
+				}
+			}
+
+			m.picker.statusMsg = fmt.Sprintf("Hidden: %s", hidden.Title)
+			return m, tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+				return clearStatusMsg{}
+			})
 		}
 		return m, cmd
 
@@ -262,6 +304,23 @@ func (m model) View() string {
 		return m.creator.View()
 	}
 	return ""
+}
+
+func (m model) filterHidden(lists []TaskList) []TaskList {
+	if len(m.cfg.HiddenListsByID) == 0 {
+		return lists
+	}
+	hidden := make(map[string]bool, len(m.cfg.HiddenListsByID))
+	for _, id := range m.cfg.HiddenListsByID {
+		hidden[id] = true
+	}
+	filtered := make([]TaskList, 0, len(lists))
+	for _, l := range lists {
+		if !hidden[l.ID] {
+			filtered = append(filtered, l)
+		}
+	}
+	return filtered
 }
 
 func matchesListName(title, name string) bool {

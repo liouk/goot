@@ -30,9 +30,13 @@ func main() {
 		listName = os.Args[1]
 	}
 
+	appCfg := loadConfig()
+
 	cfg := tui.Config{
-		API:      &apiAdapter{client},
-		ListName: listName,
+		API:              &apiAdapter{client},
+		ListName:         listName,
+		HiddenListsByID: appCfg.HiddenListsByID,
+		HideList:       appCfg.addHiddenList,
 	}
 
 	p := tea.NewProgram(tui.New(cfg), tea.WithAltScreen())
