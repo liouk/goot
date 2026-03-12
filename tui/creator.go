@@ -18,7 +18,7 @@ var (
 
 	labelStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.ANSIColor(3)). // yellow
-			Width(10)
+			Width(6)
 
 	taskItemStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.ANSIColor(7)) // white

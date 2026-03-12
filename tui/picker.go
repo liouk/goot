@@ -72,6 +72,8 @@ func pickerWithLists(p pickerModel, lists []TaskList) pickerModel {
 		items[i] = listItem{list: l}
 	}
 	p.list.SetItems(items)
+	// +6 accounts for title, spacing, filter input, help lines, and padding.
+	p.list.SetHeight(len(lists) + 6)
 	return p
 }
 
