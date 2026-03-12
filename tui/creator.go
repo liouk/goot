@@ -27,9 +27,10 @@ var (
 			Foreground(lipgloss.ANSIColor(4)) // blue
 
 	sectionStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.ANSIColor(4)). // blue
 			Padding(1, 2)
+
+	separatorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.ANSIColor(8)) // gray
 
 	successStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.ANSIColor(2)). // green
@@ -141,13 +142,12 @@ func (m creatorModel) View() string {
 	if w < 40 {
 		w = 40
 	}
-	// Account for border (1 char each side).
-	contentWidth := w - 2
 
-	top := sectionStyle.Width(contentWidth).Render(form)
-	bottom := sectionStyle.Width(contentWidth).Render(existing)
+	top := sectionStyle.Width(w).Render(form)
+	sep := separatorStyle.Render(strings.Repeat("─", w))
+	bottom := sectionStyle.Width(w).Render(existing)
 
-	return "\n" + lipgloss.JoinVertical(lipgloss.Left, top, bottom) + "\n"
+	return "\n" + top + "\n" + sep + "\n" + bottom + "\n"
 }
 
 func (m creatorModel) renderExistingTasks() string {
