@@ -77,7 +77,6 @@ type successTimeoutMsg struct{}
 // clearStatusMsg clears the picker status message.
 type clearStatusMsg struct{}
 
-
 // errMsg wraps any error from async operations.
 type errMsg struct{ err error }
 
@@ -177,7 +176,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case taskCreatedMsg:
 		m.quitting = true
-		return m, tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+		return m, tea.Tick(1*time.Second, func(_ time.Time) tea.Msg {
 			return successTimeoutMsg{}
 		})
 
