@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"google.golang.org/api/option"
@@ -73,7 +75,51 @@ func (c *Client) Tasks(ctx context.Context, listID string) ([]Task, error) {
 	return result, nil
 }
 
+var githubPRRe = regexp.MustCompile(`https?://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)\S*`)
+var githubRepoRe = regexp.MustCompile(`https?://github\.com/([^/\s]+)/([^/\s]+?)(?:\.git|/)?(?:\s|$)`)
+var jiraRe = regexp.MustCompile(`https?://[^/\s]+/browse/([A-Z][A-Z0-9]+-\d+)\S*`)
+
+func processGitHubURLs(task Task) Task {
+	var links []string
+
+	task.Title = githubPRRe.ReplaceAllStringFunc(task.Title, func(match string) string {
+		m := githubPRRe.FindStringSubmatch(match)
+		links = append(links, match)
+		return m[1] + "/" + m[2] + "#" + m[3]
+	})
+
+	task.Title = jiraRe.ReplaceAllStringFunc(task.Title, func(match string) string {
+		m := jiraRe.FindStringSubmatch(match)
+		links = append(links, match)
+		return m[1]
+	})
+
+	task.Title = githubRepoRe.ReplaceAllStringFunc(task.Title, func(match string) string {
+		m := githubRepoRe.FindStringSubmatch(match)
+		url := strings.TrimRight(match, " \t\n")
+		links = append(links, url)
+		trailing := match[len(url):]
+		return m[1] + "/" + m[2] + trailing
+	})
+
+	if len(links) > 0 {
+		var linkLines []string
+		for _, l := range links {
+			linkLines = append(linkLines, "Link: "+l)
+		}
+		suffix := strings.Join(linkLines, "\n")
+		if task.Notes != "" {
+			task.Notes += "\n" + suffix
+		} else {
+			task.Notes = suffix
+		}
+	}
+
+	return task
+}
+
 func (c *Client) CreateTask(ctx context.Context, listID string, task Task) error {
+	task = processGitHubURLs(task)
 	t := &tasks.Task{
 		Title: task.Title,
 		Notes: task.Notes,
