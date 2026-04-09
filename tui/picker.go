@@ -48,7 +48,7 @@ func (d listItemDelegate) Render(w io.Writer, m list.Model, index int, item list
 		prefix = "> "
 	}
 
-	number := pickerNumberStyle.Render(fmt.Sprintf("%d.", index+1))
+	number := pickerNumberStyle.Render(fmt.Sprintf("%d.", index))
 	fmt.Fprint(w, style.Render(fmt.Sprintf("%s%s %s", prefix, number, li.list.Title)))
 }
 
@@ -117,9 +117,9 @@ func (m pickerModel) Update(msg tea.Msg) (pickerModel, tea.Cmd) {
 					return m, nil
 				}
 			}
-		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			if !m.list.SettingFilter() {
-				idx := int(key.String()[0]-'0') - 1
+				idx := int(key.String()[0] - '0')
 				items := m.list.Items()
 				if idx < len(items) {
 					if item, ok := items[idx].(listItem); ok {
