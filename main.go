@@ -30,13 +30,13 @@ func main() {
 		return
 	}
 
-	// Subcommand: goot done <range>
+	// Subcommand: goot done [range]
 	if len(os.Args) > 1 && os.Args[1] == "done" {
-		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "usage: goot done <shortcut> | goot done --from YYYY-MM-DD --to YYYY-MM-DD")
-			os.Exit(1)
+		args := os.Args[2:]
+		if len(args) == 0 {
+			args = []string{"this-week"}
 		}
-		if err := runDone(ctx, client, os.Args[2:]); err != nil {
+		if err := runDone(ctx, client, args); err != nil {
 			fmt.Fprintf(os.Stderr, "done: %s\n", err)
 			os.Exit(1)
 		}
@@ -70,7 +70,7 @@ func printHelp() {
 Usage:
   goot                    Open the TUI (list picker → task creator)
   goot list <list-name>   Skip picker, jump to task creation for matching list
-  goot done <range>       Print completed tasks as markdown
+  goot done [range]       Print completed tasks as markdown (default: this-week)
   goot help               Show this help message
 
 Done ranges:
