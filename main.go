@@ -25,6 +25,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	if len(os.Args) > 1 && (os.Args[1] == "help" || os.Args[1] == "--help" || os.Args[1] == "-h") {
+		printHelp()
+		return
+	}
+
+	// Subcommand: goot done <range>
+	if len(os.Args) > 1 && os.Args[1] == "done" {
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "usage: goot done <shortcut> | goot done --from YYYY-MM-DD --to YYYY-MM-DD")
+			os.Exit(1)
+		}
+		if err := runDone(ctx, client, os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "done: %s\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	var listName string
 	if len(os.Args) > 1 {
 		listName = os.Args[1]
@@ -33,10 +51,10 @@ func main() {
 	appCfg := loadConfig()
 
 	cfg := tui.Config{
-		API:              &apiAdapter{client},
-		ListName:         listName,
+		API:             &apiAdapter{client},
+		ListName:        listName,
 		HiddenListsByID: appCfg.HiddenListsByID,
-		HideList:       appCfg.addHiddenList,
+		HideList:        appCfg.addHiddenList,
 	}
 
 	p := tea.NewProgram(tui.New(cfg), tea.WithAltScreen())
@@ -44,6 +62,29 @@ func main() {
 		fmt.Fprintf(os.Stderr, "tui: %s\n", err)
 		os.Exit(1)
 	}
+}
+
+func printHelp() {
+	fmt.Print(`goot - A minimal TUI for Google Tasks
+
+Usage:
+  goot                Open the TUI (list picker → task creator)
+  goot <list-name>    Skip picker, jump to task creation for matching list
+  goot done <range>   Print completed tasks as markdown
+  goot help           Show this help message
+
+Done ranges:
+  Shortcuts:    today, yesterday, this-week, last-week,
+                this-month, last-month, this-quarter, last-quarter,
+                this-year, last-year
+  Explicit:     --from YYYY-MM-DD --to YYYY-MM-DD
+
+Examples:
+  goot done this-month
+  goot done last-quarter
+  goot done --from 2026-01-01 --to 2026-03-31
+  goot done last-month | claude -p "summarize what I worked on"
+`)
 }
 
 // apiAdapter bridges the main package Client to the tui.TaskAPI interface.

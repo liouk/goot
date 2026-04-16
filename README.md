@@ -1,6 +1,6 @@
 # goot
 
-A minimal TUI for quickly adding tasks to Google Tasks.
+A minimal TUI for quickly adding tasks to Google Tasks, and a CLI for querying completed tasks.
 
 ## Setup
 
@@ -26,10 +26,43 @@ go build -o goot .
 
 ```
 goot [list-name]
+goot done <range>
+goot help
 ```
 
 - No arguments: starts at the list selection screen with fuzzy filtering
 - With a list name: skips selection and jumps straight to task creation (case-insensitive match; falls back to selection if no match)
+
+### Completed tasks
+
+`goot done` fetches completed tasks across all task lists and prints them as markdown, grouped by list.
+
+**Shortcuts:**
+
+```
+goot done today
+goot done yesterday
+goot done this-week
+goot done last-week
+goot done this-month
+goot done last-month
+goot done this-quarter
+goot done last-quarter
+goot done this-year
+goot done last-year
+```
+
+**Explicit date range:**
+
+```
+goot done --from 2026-01-01 --to 2026-03-31
+```
+
+The output is both human-readable and suitable for piping into an LLM:
+
+```
+goot done last-quarter | claude -p "summarize what I worked on"
+```
 
 ## Configuration
 

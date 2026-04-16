@@ -75,6 +75,48 @@ func (c *Client) Tasks(ctx context.Context, listID string) ([]Task, error) {
 	return result, nil
 }
 
+func (c *Client) CompletedTasks(ctx context.Context, listID string, dr DateRange) ([]CompletedTask, error) {
+	minRFC := dr.From.Format(time.RFC3339)
+	maxRFC := dr.To.Format(time.RFC3339)
+
+	var all []CompletedTask
+	call := c.svc.Tasks.List(listID).Context(ctx).
+		MaxResults(100).
+		ShowCompleted(true).
+		ShowHidden(true).
+		CompletedMin(minRFC).
+		CompletedMax(maxRFC)
+
+	for {
+		resp, err := call.Do()
+		if err != nil {
+			return nil, fmt.Errorf("list completed tasks: %w", err)
+		}
+
+		for _, item := range resp.Items {
+			if item.Completed == nil || *item.Completed == "" {
+				continue
+			}
+			var completed string
+			if t, err := time.Parse(time.RFC3339, *item.Completed); err == nil {
+				completed = t.Format("2006-01-02")
+			}
+			all = append(all, CompletedTask{
+				Title:     item.Title,
+				Notes:     item.Notes,
+				Completed: completed,
+			})
+		}
+
+		if resp.NextPageToken == "" {
+			break
+		}
+		call = call.PageToken(resp.NextPageToken)
+	}
+
+	return all, nil
+}
+
 var githubPRRe = regexp.MustCompile(`https?://github\.com/([^/\s]+)/([^/\s]+)/pull/(\d+)\S*`)
 var githubRepoRe = regexp.MustCompile(`https?://github\.com/([^/\s]+)/([^/\s]+?)(?:\.git|/)?(?:\s|$)`)
 var jiraRe = regexp.MustCompile(`https?://[^/\s]+/browse/([A-Z][A-Z0-9]+-\d+)\S*`)
