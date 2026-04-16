@@ -25,13 +25,14 @@ go build -o goot .
 ## Usage
 
 ```
-goot [list-name]
+goot
+goot list <list-name>
 goot done <range>
 goot help
 ```
 
 - No arguments: starts at the list selection screen with fuzzy filtering
-- With a list name: skips selection and jumps straight to task creation (case-insensitive match; falls back to selection if no match)
+- `goot list <name>`: skips selection and jumps straight to task creation (case-insensitive match; falls back to selection if no match)
 
 ### Completed tasks
 

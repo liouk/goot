@@ -44,8 +44,8 @@ func main() {
 	}
 
 	var listName string
-	if len(os.Args) > 1 {
-		listName = os.Args[1]
+	if len(os.Args) > 2 && os.Args[1] == "list" {
+		listName = os.Args[2]
 	}
 
 	appCfg := loadConfig()
@@ -68,10 +68,10 @@ func printHelp() {
 	fmt.Print(`goot - A minimal TUI for Google Tasks
 
 Usage:
-  goot                Open the TUI (list picker → task creator)
-  goot <list-name>    Skip picker, jump to task creation for matching list
-  goot done <range>   Print completed tasks as markdown
-  goot help           Show this help message
+  goot                    Open the TUI (list picker → task creator)
+  goot list <list-name>   Skip picker, jump to task creation for matching list
+  goot done <range>       Print completed tasks as markdown
+  goot help               Show this help message
 
 Done ranges:
   Shortcuts:    today, yesterday, this-week, last-week,
